@@ -1,0 +1,35 @@
+body, html {
+    height: 100%;
+    margin: 0;
+  }
+  
+  .maincontent {
+    display: flex;
+    height: 100%;
+  }
+  
+  .dash-cont {
+    width: 250px; 
+    background-color: #f4f4f4; 
+    padding: 10px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1); 
+  }
+  
+  .container {
+    flex: 1;
+    padding: 20px;
+    background-color: #fff; 
+    overflow: auto; 
+  }
+  
+ 
+  .card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+  }
+  
+  .card-body {
+    padding: 15px;
+  }
+  
