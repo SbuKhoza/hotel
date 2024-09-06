@@ -5,18 +5,16 @@ import AdminLogin from './admin/AdminLogin';
 
 function App() {
   return (
-    <>
+    
     <Router>
       <div className='App'>
         
         <Routes>
-          <Route path="/" element={<AdminLogin />} />
-          <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="./" element={<AdminLogin />} />
+          <Route path="admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </div>
     </Router>
-    </>
-    
     // <div>
     // <AdminLogin/>
     // </div>
