@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Guests from './pages/Guests';
 import Rates from './pages/Rates';
 import Specials from './pages/Specials';
+import Users from './pages/Users';  // Import the new page
+import Reservations from './pages/Reservations';  // Import the reservation page
 
 function App() {
   return (
@@ -17,7 +19,8 @@ function App() {
         <Route path="/accommodations" element={<Accommodations />} />
         <Route path="/rates" element={<Rates />} />
         <Route path="/specials" element={<Specials />} />
-        
+        <Route path="/users" element={<Users />} />  {/* Add the user route */}
+        <Route path="/reservations" element={<Reservations />} /> {/* Add the reservations route */}
       </Routes>
     </Router>
   );

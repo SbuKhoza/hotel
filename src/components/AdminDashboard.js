@@ -14,7 +14,6 @@ import './AdminDashboard.css';
 function AdminDashboard() {
   const location = useLocation();
 
-  
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard':
@@ -27,6 +26,10 @@ function AdminDashboard() {
         return 'Rates';
       case '/specials':
         return 'Specials';
+      case '/users':
+        return 'Users'; // Add case for Users page
+      case '/reservations':
+        return 'Reservations'; // Add case for Reservations page
       default:
         return 'Admin Dashboard';
     }
@@ -34,21 +37,19 @@ function AdminDashboard() {
 
   return (
     <div className="main">
-      {/* Sidebar (sidedash) */}
       <Drawer
         variant="permanent"
         sx={{
-          width: 250, 
+          width: 250,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: 250,
             boxSizing: 'border-box',
-            backgroundColor: '#1E293B', 
-            color: '#fff', 
+            backgroundColor: 'black',
+            color: '#fff',
           },
         }}
       >
-        {/* Hotel name as the logo */}
         <div className="hotel-logo" style={{ textAlign: 'center', padding: '20px 0', fontFamily: 'Righteous, sans-serif' }}>
           <Typography variant="h5" sx={{ color: '#fff' }}>
             Steady Hotel
@@ -60,35 +61,51 @@ function AdminDashboard() {
             <ListItemIcon sx={{ color: '#fff' }}>
               <DashboardIcon />
             </ListItemIcon>
-            <ListItemText primary="Dashboard" />
+            <ListItemText primary="Dashboard" sx={{ color: '#fff' }}/>
           </ListItem>
 
           <ListItem button component={Link} to="/guests">
             <ListItemIcon sx={{ color: '#fff' }}>
               <PeopleIcon />
             </ListItemIcon>
-            <ListItemText primary="Guests" />
+            <ListItemText primary="Guests" sx={{ color: '#fff' }} />
           </ListItem>
 
           <ListItem button component={Link} to="/accommodations">
             <ListItemIcon sx={{ color: '#fff' }}>
               <HotelIcon />
             </ListItemIcon>
-            <ListItemText primary="Accommodations" />
+            <ListItemText primary="Accommodations" sx={{ color: '#fff' }} />
           </ListItem>
 
           <ListItem button component={Link} to="/rates">
             <ListItemIcon sx={{ color: '#fff' }}>
               <MonetizationOnIcon />
             </ListItemIcon>
-            <ListItemText primary="Rates" />
+            <ListItemText primary="Rates" sx={{ color: '#fff' }} />
           </ListItem>
 
           <ListItem button component={Link} to="/specials">
             <ListItemIcon sx={{ color: '#fff' }}>
               <LocalOfferIcon />
             </ListItemIcon>
-            <ListItemText primary="Specials" />
+            <ListItemText primary="Specials" sx={{ color: '#fff' }} />
+          </ListItem>
+
+          {/* Add Users link */}
+          <ListItem button component={Link} to="/users">
+            <ListItemIcon sx={{ color: '#fff' }}>
+              <PeopleIcon />
+            </ListItemIcon>
+            <ListItemText primary="Users" sx={{ color: '#fff' }} />
+          </ListItem>
+
+          {/* Add Reservations link */}
+          <ListItem button component={Link} to="/reservations">
+            <ListItemIcon sx={{ color: '#fff' }}>
+              <HotelIcon />
+            </ListItemIcon>
+            <ListItemText primary="Reservations" sx={{ color: '#fff' }} />
           </ListItem>
 
           {/* Logout Button */}
@@ -96,14 +113,12 @@ function AdminDashboard() {
             <ListItemIcon sx={{ color: '#fff' }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText primary="Logout" sx={{ color: '#fff' }} />
           </ListItem>
         </List>
       </Drawer>
 
-      {/* Main container */}
       <div className="container">
-        
         <div className="top-bar">
           <Typography variant="h5">{getPageTitle()}</Typography>
           <div>
@@ -116,7 +131,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Search bar */}
         <div className="search">
           <SearchIcon sx={{ marginRight: 1 }} />
           <InputBase
