@@ -1,13 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 function Users() {
+  const [users, setUsers] = useState([]);
 
-  const users = [
-    { id: 1, name: 'John Doe', email: 'john@example.com' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-  
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const usersCollection = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersCollection);
+      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersList);
+    };
+
+    fetchUsers();
+  }, []);
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'users', id));
+      setUsers(users.filter(user => user.id !== id));
+      alert('User deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -20,7 +38,7 @@ function Users() {
                 <Typography variant="h6">{user.name}</Typography>
                 <Typography variant="body2">{user.email}</Typography>
                 <Button variant="outlined" color="primary" sx={{ mt: 2 }}>Edit</Button>
-                <Button variant="outlined" color="secondary" sx={{ mt: 2, ml: 2 }}>Delete</Button>
+                <Button variant="outlined" color="secondary" sx={{ mt: 2, ml: 2 }} onClick={() => handleDelete(user.id)}>Delete</Button>
               </CardContent>
             </Card>
           </Grid>
