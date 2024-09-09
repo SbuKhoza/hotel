@@ -41,7 +41,7 @@ function AdminDashboard() {
     const file = event.target.files[0];
     setImageFile(file);
 
-    // Optional: Display a preview or convert the file to a URL if necessary
+    
     const reader = new FileReader();
     reader.onload = () => {
       setAccommodationData({ ...accommodationData, image: reader.result });
@@ -51,9 +51,9 @@ function AdminDashboard() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    // Handle form submission logic here
+   
     console.log(accommodationData);
-    // Add the new accommodation to Firestore
+   
     await addAccommodationToFirestore(accommodationData);
     setAccommodationData({
       name: '',
