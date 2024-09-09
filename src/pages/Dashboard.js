@@ -49,7 +49,7 @@ function Dashboard() {
         }}
       >
         <Typography variant="h6">Sidebar</Typography>
-        {/* Add additional sidebar items here */}
+        
       </Box>
       <Box
         sx={{
