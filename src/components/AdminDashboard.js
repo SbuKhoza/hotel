@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography } from '@mui/material';
+import { Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import HotelIcon from '@mui/icons-material/Hotel';
@@ -10,9 +10,61 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
 import './AdminDashboard.css';
+import { addAccommodationToFirestore } from '../services/firestoreService'; // Update the path as needed
 
 function AdminDashboard() {
   const location = useLocation();
+  const [openDialog, setOpenDialog] = useState(false);
+  const [accommodationData, setAccommodationData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    availability: '',
+    image: ''
+  });
+  const [imageFile, setImageFile] = useState(null);
+
+  const handleClickOpenDialog = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setAccommodationData({ ...accommodationData, [name]: value });
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    setImageFile(file);
+
+    // Optional: Display a preview or convert the file to a URL if necessary
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAccommodationData({ ...accommodationData, image: reader.result });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    // Handle form submission logic here
+    console.log(accommodationData);
+    // Add the new accommodation to Firestore
+    await addAccommodationToFirestore(accommodationData);
+    setAccommodationData({
+      name: '',
+      description: '',
+      price: '',
+      availability: '',
+      image: ''
+    });
+    setImageFile(null);
+    handleCloseDialog();
+  };
 
   const getPageTitle = () => {
     switch (location.pathname) {
@@ -27,9 +79,9 @@ function AdminDashboard() {
       case '/specials':
         return 'Specials';
       case '/users':
-        return 'Users'; // Add case for Users page
+        return 'Users';
       case '/reservations':
-        return 'Reservations'; // Add case for Reservations page
+        return 'Reservations';
       default:
         return 'Admin Dashboard';
     }
@@ -92,7 +144,6 @@ function AdminDashboard() {
             <ListItemText primary="Specials" sx={{ color: '#fff' }} />
           </ListItem>
 
-          {/* Add Users link */}
           <ListItem button component={Link} to="/users">
             <ListItemIcon sx={{ color: '#fff' }}>
               <PeopleIcon />
@@ -100,7 +151,6 @@ function AdminDashboard() {
             <ListItemText primary="Users" sx={{ color: '#fff' }} />
           </ListItem>
 
-          {/* Add Reservations link */}
           <ListItem button component={Link} to="/reservations">
             <ListItemIcon sx={{ color: '#fff' }}>
               <HotelIcon />
@@ -108,7 +158,6 @@ function AdminDashboard() {
             <ListItemText primary="Reservations" sx={{ color: '#fff' }} />
           </ListItem>
 
-          {/* Logout Button */}
           <ListItem button component={Link} to="/logout">
             <ListItemIcon sx={{ color: '#fff' }}>
               <LogoutIcon />
@@ -134,7 +183,7 @@ function AdminDashboard() {
         <div className="search">
           <SearchIcon sx={{ marginRight: 1 }} />
           <InputBase
-            placeholder="Search for rooms"
+            placeholder="Search"
             inputProps={{ 'aria-label': 'search' }}
             sx={{
               border: '1px solid #ccc',
@@ -144,6 +193,99 @@ function AdminDashboard() {
             }}
           />
         </div>
+
+        <div className="top-bar-buttons">
+          <Button variant="contained" color="primary" sx={{ mt: 2, mr: 1, width: '200px' }} onClick={handleClickOpenDialog}>
+            Create Accommodation
+          </Button>
+          <Button variant="contained" color="primary" sx={{ mt: 2, width: '200px' }}>
+            Create Booking
+          </Button>
+        </div>
+
+        <Dialog open={openDialog} onClose={handleCloseDialog}>
+          <DialogTitle>Create New Accommodation</DialogTitle>
+          <DialogContent>
+            <form onSubmit={handleSubmit}>
+              <TextField
+                autoFocus
+                margin="dense"
+                name="name"
+                label="Accommodation Name"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={accommodationData.name}
+                onChange={handleChange}
+                required
+              />
+              <TextField
+                margin="dense"
+                name="description"
+                label="Description"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={accommodationData.description}
+                onChange={handleChange}
+                required
+              />
+              <TextField
+                margin="dense"
+                name="price"
+                label="Price"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={accommodationData.price}
+                onChange={handleChange}
+                required
+              />
+              <TextField
+                margin="dense"
+                name="availability"
+                label="Availability"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={accommodationData.availability}
+                onChange={handleChange}
+                required
+              />
+              <TextField
+                margin="dense"
+                name="image"
+                label="Image URL"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={accommodationData.image}
+                onChange={handleChange}
+              />
+              <Button
+                variant="contained"
+                component="label"
+                sx={{ mt: 2 }}
+              >
+                Upload Image
+                <input
+                  type="file"
+                  hidden
+                  onChange={handleFileChange}
+                  accept="image/*"
+                />
+              </Button>
+            </form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} color="primary">
+              Create
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </div>
   );
