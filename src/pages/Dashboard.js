@@ -59,13 +59,13 @@ function Dashboard() {
           overflow: 'auto',
         }}
       >
-        <Typography variant="h4">Welcome to the Admin Dashboard</Typography>
+        {/* <Typography variant="h4">Welcome to the Admin Dashboard</Typography> */}
         <Typography variant="body1" sx={{ mb: 3 }}>
           Here you can get an overview of everything.
         </Typography>
-        <Button variant="contained" color="primary" sx={{ mb: 3 }}>
+        {/* <Button variant="contained" color="primary" sx={{ mb: 3 }}>
           Create Booking
-        </Button>
+        </Button> */}
         <Grid container spacing={3}>
           <Grid item xs={12} sm={4}>
             <Card>

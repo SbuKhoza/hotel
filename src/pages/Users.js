@@ -1,7 +1,9 @@
+// components/Users.js
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Grid } from '@mui/material';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import Layout from '../components/Layout';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -28,8 +30,7 @@ function Users() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>Manage Users</Typography>
+    <Layout title="Manage Users">
       <Grid container spacing={3}>
         {users.map(user => (
           <Grid item xs={12} sm={6} key={user.id}>
@@ -44,7 +45,7 @@ function Users() {
           </Grid>
         ))}
       </Grid>
-    </Box>
+    </Layout>
   );
 }
 

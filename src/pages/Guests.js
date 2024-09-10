@@ -1,9 +1,13 @@
-import React from 'react'
+import React from 'react';
+import Layout from '../components/Layout';
 
 function Guests() {
   return (
-    <div><h1>Guests</h1></div>
-  )
+    <Layout title="Guests">
+      <h1>Guests Page</h1>
+      {/* Add content or features related to guests here */}
+    </Layout>
+  );
 }
 
-export default Guests
+export default Guests;
