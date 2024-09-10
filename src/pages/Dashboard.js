@@ -1,13 +1,39 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, Grid, Button } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import Layout from '../components/Layout'; // Import the Layout component
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import './Admin.css';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 function Dashboard() {
+  const [accommodations, setAccommodations] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const accommodationsCollection = collection(db, 'accommodations');
+      const reservationsCollection = collection(db, 'bookings');
+      const usersCollection = collection(db, 'users');
+
+      const [accommodationsSnapshot, reservationsSnapshot, usersSnapshot] = await Promise.all([
+        getDocs(accommodationsCollection),
+        getDocs(reservationsCollection),
+        getDocs(usersCollection),
+      ]);
+
+      setAccommodations(accommodationsSnapshot.docs.map(doc => doc.data()));
+      setReservations(reservationsSnapshot.docs.map(doc => doc.data()));
+      setUsers(usersSnapshot.docs.map(doc => doc.data()));
+    };
+
+    fetchData();
+  }, []);
+
   // Data for the line chart
   const data = {
     labels: ['January', 'February', 'March', 'April', 'May', 'June'],
@@ -39,81 +65,46 @@ function Dashboard() {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100%' }}>
-      <Box
-        sx={{
-          width: 250,
-          bgcolor: '#f4f4f4',
-          p: 2,
-          boxShadow: 2,
-        }}
-      >
-        <Typography variant="h6">Sidebar</Typography>
-        
-      </Box>
-      <Box
-        sx={{
-          flex: 1,
-          p: 3,
-          bgcolor: '#fff',
-          overflow: 'auto',
-        }}
-      >
-        {/* <Typography variant="h4">Welcome to the Admin Dashboard</Typography> */}
-        <Typography variant="body1" sx={{ mb: 3 }}>
-          Here you can get an overview of everything.
-        </Typography>
-        {/* <Button variant="contained" color="primary" sx={{ mb: 3 }}>
-          Create Booking
-        </Button> */}
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Total Rooms</Typography>
-                <Typography variant="body1">100</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Booked Rooms</Typography>
-                <Typography variant="body1">50</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Vacant Rooms</Typography>
-                <Typography variant="body1">30</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-        <Box sx={{ mt: 5 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Customer Feedback Overview</Typography>
+    <Layout title="Dashboard Overview"> {/* Wrap content in Layout */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography variant="body1">Positive: 80%</Typography>
-              <Typography variant="body1">Neutral: 15%</Typography>
-              <Typography variant="body1">Negative: 5%</Typography>
+              <Typography variant="h5">Total Users</Typography>
+              <Typography variant="body1">{users.length}</Typography>
             </CardContent>
           </Card>
-        </Box>
-        <Box sx={{ mt: 5, height: 300 }}> {/* Set a fixed height here */}
-          <Typography variant="h6" sx={{ mb: 2 }}>Monthly Statistics</Typography>
+        </Grid>
+        <Grid item xs={12} sm={4}>
           <Card>
-            <CardContent sx={{ p: 0 }}> {/* Remove padding if needed */}
-              <Box sx={{ height: '60%', width: '60%' }}> {/* Ensure the graph takes full space */}
-                <Line data={data} options={options} />
-              </Box>
+            <CardContent>
+              <Typography variant="h5">Total Reservations</Typography>
+              <Typography variant="body1">{reservations.length}</Typography>
             </CardContent>
           </Card>
-        </Box>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5">Total Accommodations</Typography>
+              <Typography variant="body1">{accommodations.length}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Additional content like charts */}
+      <Box sx={{ mt: 5, height: 300 }}> 
+        <Typography variant="h6" sx={{ mb: 2 }}>Monthly Statistics</Typography>
+        <Card>
+          <CardContent sx={{ p: 0 }}>
+            <Box sx={{ height: '60%', width: '60%' }}>
+              <Line data={data} options={options} />
+            </Box>
+          </CardContent>
+        </Card>
       </Box>
-    </Box>
+    </Layout>
   );
 }
 

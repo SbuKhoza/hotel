@@ -1,7 +1,9 @@
+// Reservations.js
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Button, Grid } from '@mui/material';
 import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import Layout from '../components/Layout';
 
 function Reservations() {
   const [reservations, setReservations] = useState([]);
@@ -50,8 +52,7 @@ function Reservations() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>Manage Reservations</Typography>
+    <Layout title="Manage Reservations">
       <Grid container spacing={3}>
         {reservations.map(reservation => (
           <Grid item xs={12} sm={6} key={reservation.id}>
@@ -68,7 +69,7 @@ function Reservations() {
           </Grid>
         ))}
       </Grid>
-    </Box>
+    </Layout>
   );
 }
 

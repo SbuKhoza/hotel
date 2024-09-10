@@ -1,9 +1,13 @@
-import React from 'react'
+import React from 'react';
+import { Typography } from '@mui/material';
+import Layout from '../components/Layout';
 
 function Rates() {
   return (
-    <div>Rates</div>
-  )
+    <Layout title="Rates">
+      <Typography variant="body1">Rates content goes here.</Typography>
+    </Layout>
+  );
 }
 
-export default Rates
+export default Rates;
