@@ -1,4 +1,4 @@
-// Component to manage bookings in the admin CMS
+
 import { useEffect, useState } from 'react';
 import { getAllBookings, updateBooking, removeBookingFromFirestore } from '../services/firestoreService';
 

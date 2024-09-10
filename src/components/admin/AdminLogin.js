@@ -14,7 +14,7 @@ function AdminLogin() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/'); // Redirect to dashboard after successful login
+      navigate('/'); 
     } catch (error) {
       setError('Failed to sign in. Please check your credentials.');
     }
