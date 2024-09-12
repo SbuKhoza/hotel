@@ -9,6 +9,7 @@ function Accommodations() {
   const [accommodations, setAccommodations] = useState([]);
   const [editingAccommodationId, setEditingAccommodationId] = useState(null);
   const [editingAccommodation, setEditingAccommodation] = useState({ name: '', description: '', images: [] });
+  const [loading, setLoading] = useState(true);  // Add loading state
 
   useEffect(() => {
     const fetchAccommodations = async () => {
@@ -19,6 +20,8 @@ function Accommodations() {
         setAccommodations(accommodationsList);
       } catch (error) {
         console.error('Failed to fetch accommodations:', error);
+      } finally {
+        setLoading(false);  // Set loading to false after fetching data
       }
     };
 
@@ -55,7 +58,7 @@ function Accommodations() {
             return downloadURL;
           })
         );
-        updatedData.images = imageUrls; // Store the image URLs in Firestore
+        updatedData.images = imageUrls;  // Store the image URLs in Firestore
       }
 
       await updateDoc(doc(db, 'accommodations', id), updatedData);
@@ -75,70 +78,69 @@ function Accommodations() {
     }
   };
 
+  if (loading) {
+    return <div>Loading accommodations...</div>;  // Show loading indicator
+  }
+
   return (
     <Layout title="Accommodations">
       <Grid container spacing={3}>
-        {accommodations.map((accommodation) => (
-          <Grid item xs={12} sm={6} key={accommodation.id}>
-            <Card>
-              <CardContent>
-                {editingAccommodationId === accommodation.id ? (
-                  <>
-                    <TextField
-                      label="Name"
-                      value={editingAccommodation.name}
-                      onChange={(e) => setEditingAccommodation({ ...editingAccommodation, name: e.target.value })}
-                      fullWidth
-                      margin="normal"
-                    />
-                    <TextField
-                      label="Description"
-                      value={editingAccommodation.description}
-                      onChange={(e) => setEditingAccommodation({ ...editingAccommodation, description: e.target.value })}
-                      fullWidth
-                      margin="normal"
-                    />
-                    <Button
-                      variant="contained"
-                      component="label"
-                    >
-                      Upload Images
-                      <input
-                        type="file"
-                        hidden
-                        multiple
-                        onChange={handleFileChange}
-                        accept="image/*"
+        {accommodations?.length > 0 ? (
+          accommodations.map((accommodation) => (
+            <Grid item xs={12} sm={6} key={accommodation.id}>
+              <Card>
+                <CardContent>
+                  {editingAccommodationId === accommodation.id ? (
+                    <>
+                      <TextField
+                        label="Name"
+                        value={editingAccommodation.name}
+                        onChange={(e) => setEditingAccommodation({ ...editingAccommodation, name: e.target.value })}
+                        fullWidth
+                        margin="normal"
                       />
-                    </Button>
-                    <Button onClick={() => handleUpdateAccommodation(accommodation.id)} color="primary">
-                      Save
-                    </Button>
-                    <Button onClick={handleClearAll} color="secondary">
-                      Clear All
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h5" component="div">
-                      {accommodation.name}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {accommodation.description}
-                    </Typography>
-                    {accommodation.images.map((url, index) => (
-                      <img key={index} src={url} alt={`Accommodation ${index + 1}`} style={{ width: '100px', height: '100px' }} />
-                    ))}
-                    <Button onClick={() => handleEditClick(accommodation)}>Edit</Button>
-                    <Button onClick={() => handleDeleteAccommodation(accommodation.id)} color="secondary">
-                      Delete
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+                      <TextField
+                        label="Description"
+                        value={editingAccommodation.description}
+                        onChange={(e) => setEditingAccommodation({ ...editingAccommodation, description: e.target.value })}
+                        fullWidth
+                        margin="normal"
+                      />
+                      <Button variant="contained" component="label">
+                        Upload Images
+                        <input type="file" hidden multiple onChange={handleFileChange} accept="image/*" />
+                      </Button>
+                      <Button onClick={() => handleUpdateAccommodation(accommodation.id)} color="primary">
+                        Save
+                      </Button>
+                      <Button onClick={handleClearAll} color="secondary">
+                        Clear All
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h5" component="div">
+                        {accommodation.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {accommodation.description}
+                      </Typography>
+                      {accommodation.images?.map((url, index) => (
+                        <img key={index} src={url} alt={`Accommodation ${index + 1}`} style={{ width: '100px', height: '100px' }} />
+                      ))}
+                      <Button onClick={() => handleEditClick(accommodation)}>Edit</Button>
+                      <Button onClick={() => handleDeleteAccommodation(accommodation.id)} color="secondary">
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+        ) : (
+          <Typography>No accommodations available</Typography>  // Fallback when no data
+        )}
       </Grid>
     </Layout>
   );
