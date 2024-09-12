@@ -14,7 +14,7 @@ const AdminReservationManagement = () => {
 
   const handleApprove = async (bookingId) => {
     await approveBooking(bookingId);
-    // Optionally, refetch bookings or update local state
+    
   };
 
   const handleReject = async (bookingId) => {

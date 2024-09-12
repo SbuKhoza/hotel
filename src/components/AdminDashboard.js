@@ -10,7 +10,11 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
 import './AdminDashboard.css';
-import { addAccommodationToFirestore } from '../services/firestoreService'; // Update the path as needed
+import { addAccommodationToFirestore } from '../services/firestoreService';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import Firebase Storage functions
+import { v4 as uuidv4 } from 'uuid'; // For unique image names
+
+const storage = getStorage();
 
 function AdminDashboard() {
   const location = useLocation();
@@ -20,9 +24,9 @@ function AdminDashboard() {
     description: '',
     price: '',
     availability: '',
-    image: ''
+    images: []
   });
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
 
   const handleClickOpenDialog = () => {
     setOpenDialog(true);
@@ -38,32 +42,43 @@ function AdminDashboard() {
   };
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    setImageFile(file);
+    const files = Array.from(event.target.files);
+    setImageFiles(files);
+  };
 
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAccommodationData({ ...accommodationData, image: reader.result });
-    };
-    reader.readAsDataURL(file);
+  const uploadImages = async () => {
+    const uploadPromises = imageFiles.map((file) => {
+      const storageRef = ref(storage, `images/${uuidv4()}_${file.name}`);
+      return uploadBytes(storageRef, file).then(snapshot => getDownloadURL(snapshot.ref));
+    });
+
+    return Promise.all(uploadPromises);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
    
-    console.log(accommodationData);
-   
-    await addAccommodationToFirestore(accommodationData);
+    try {
+      const imageUrls = await uploadImages();
+      const accommodationWithUrls = { ...accommodationData, images: imageUrls };
+
+      await addAccommodationToFirestore(accommodationWithUrls);
+      clearForm();
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error uploading images or saving accommodation: ", error);
+    }
+  };
+
+  const clearForm = () => {
     setAccommodationData({
       name: '',
       description: '',
       price: '',
       availability: '',
-      image: ''
+      images: []
     });
-    setImageFile(null);
-    handleCloseDialog();
+    setImageFiles([]);
   };
 
   const getPageTitle = () => {
@@ -252,39 +267,29 @@ function AdminDashboard() {
                 onChange={handleChange}
                 required
               />
-              <TextField
-                margin="dense"
-                name="image"
-                label="Image URL"
-                type="text"
-                fullWidth
-                variant="outlined"
-                value={accommodationData.image}
-                onChange={handleChange}
-              />
               <Button
                 variant="contained"
                 component="label"
-                sx={{ mt: 2 }}
+                sx={{ mt: 2, mb: 2 }}
               >
-                Upload Image
+                Upload Images
                 <input
                   type="file"
                   hidden
+                  multiple
                   onChange={handleFileChange}
-                  accept="image/*"
                 />
               </Button>
+              <DialogActions>
+                <Button onClick={handleCloseDialog} color="secondary">
+                  Cancel
+                </Button>
+                <Button type="submit" color="primary">
+                  Create
+                </Button>
+              </DialogActions>
             </form>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog} color="primary">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} color="primary">
-              Create
-            </Button>
-          </DialogActions>
         </Dialog>
       </div>
     </div>
