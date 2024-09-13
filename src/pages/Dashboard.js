@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../services/firebaseService';
+
+
+
 import Layout from '../components/Layout'; // Import the Layout component
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';

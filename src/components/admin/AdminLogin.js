@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { Box, TextField, Button, Typography, Alert, Grid, Paper } from '@mui/material';
+import { Grid, Paper, Typography, Alert, Box, TextField, Button } from '@mui/material';
 
 function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('sbudam@gmail.com');  // admin's email
+  const [password, setPassword] = useState('P@ssword1');  // admin's password
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const auth = getAuth();
@@ -13,8 +13,9 @@ function AdminLogin() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      // Authenticate using Firebase auth
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/'); 
+      navigate('/'); // redirect to the dashboard or home page after successful login
     } catch (error) {
       setError('Failed to sign in. Please check your credentials.');
     }

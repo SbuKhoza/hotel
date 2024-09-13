@@ -8,13 +8,15 @@ import Rates from './pages/Rates';
 import Specials from './pages/Specials';
 import Users from './pages/Users';  // Import the new page
 import Reservations from './pages/Reservations';  // Import the reservation page
+// import Login from './pages/Login';
 
 function App() {
   return (
     <Router>
       <AdminDashboard />
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        {/* <Route path="/" element={<Login />} /> */}
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/guests" element={<Guests />} />
         <Route path="/accommodations" element={<Accommodations />} />
         <Route path="/rates" element={<Rates />} />
