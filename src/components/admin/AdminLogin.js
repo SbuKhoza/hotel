@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase'; // Import from firebase.js
-import { signInWithEmailAndPassword } from 'firebase/auth'; // Import Auth functions from Firebase
 import './AdminLogin.css';
+
+// Import Firebase services
+import { auth } from '../services/firebase'; // Assuming Firebase is initialized in services/firebase.js
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -12,11 +14,14 @@ function AdminLogin() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
     try {
+      // Sign in with Firebase Authentication
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
-    } catch (error) {
+      navigate('/'); // Redirect to the dashboard or homepage after successful login
+    } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
+      console.error('Error signing in:', err);
     }
   };
 
