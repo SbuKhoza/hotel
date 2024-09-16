@@ -1,59 +1,113 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TextField, Button, Box, Typography, CircularProgress, Alert } from '@mui/material';
 import './AdminLogin.css';
-
-// Import Firebase services
-import { auth } from '../services/firebase'; // Assuming Firebase is initialized in services/firebase.js
+import { auth, db } from '../../services/firebase'; // Import Firestore
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore'; // Firestore functions for document retrieval
 
-function AdminLogin() {
+function AdminLogin({ onClose }) {  // Accept onClose prop
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); 
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+    setError('');
+    setLoading(true); 
+
     try {
       // Sign in with Firebase Authentication
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/'); // Redirect to the dashboard or homepage after successful login
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if user is an admin
+      const adminDocRef = doc(db, 'admins', user.uid); // Reference to admin doc using UID
+      const adminDocSnap = await getDoc(adminDocRef);
+
+      if (adminDocSnap.exists()) {
+        // If user is found in the 'admins' collection, proceed to dashboard
+        onClose(); // Close the login dialog on success
+        navigate('/dashboard');
+      } else {
+        // If not an admin, show an error
+        setError('You do not have admin privileges.');
+        await auth.signOut(); // Sign the user out if they are not an admin
+      }
     } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
       console.error('Error signing in:', err);
+    } finally {
+      setLoading(false); 
     }
   };
 
   return (
-    <div className="login-container">
-      <h2>Admin Login</h2>
-      <form onSubmit={handleLogin}>
-        <div className="input-container">
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+    <Box
+      sx={{
+        maxWidth: 400,
+        margin: 'auto',
+        mt: 8,
+        padding: 3,
+        border: '1px solid #ccc',
+        borderRadius: 2,
+        boxShadow: 3,
+      }}
+    >
+      <Typography variant="h4" align="center" gutterBottom>
+        Admin Login
+      </Typography>
 
-        <div className="input-container">
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center">
+          <CircularProgress />
+        </Box>
+      ) : (
+        <form onSubmit={handleLogin}>
+          <Box mb={2}>
+            <TextField
+              label="Email"
+              type="email"
+              variant="outlined"
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Box>
 
-        {error && <p className="error-message">{error}</p>}
+          <Box mb={2}>
+            <TextField
+              label="Password"
+              type="password"
+              variant="outlined"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Box>
 
-        <button type="submit">Login</button>
-      </form>
-    </div>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={loading}
+          >
+            Login
+          </Button>
+        </form>
+      )}
+    </Box>
   );
 }
 

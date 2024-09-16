@@ -8,6 +8,7 @@ import Rates from './pages/Rates';
 import Specials from './pages/Specials';
 import Users from './pages/Users';
 import Reservations from './pages/Reservations';
+// import Login from './pages/Login'
 import Loader from './components/Loader'; // Import the Loader component
 
 function App() {
@@ -28,8 +29,10 @@ function App() {
 
   return (
     <Router>
-      <AdminDashboard />
+      
+      <AdminDashboard/>
       <Routes>
+        {/* <Route path="/" element={<Login />} /> */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/guests" element={<Guests />} />
         <Route path="/accommodations" element={<Accommodations />} />
