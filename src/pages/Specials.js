@@ -1,8 +1,5 @@
-// components/Specials.js
 import React, { useEffect, useState } from 'react';
-import { Typography, Card, CardContent, Button, Grid, Modal, TextField } from '@mui/material';
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { Typography, Card, CardContent, Button, Grid, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import Layout from '../components/Layout';
 
 function Specials() {
@@ -13,24 +10,11 @@ function Specials() {
   const [description, setDescription] = useState('');
 
   useEffect(() => {
-    const fetchSpecials = async () => {
-      const specialsCollection = collection(db, 'specials');
-      const specialsSnapshot = await getDocs(specialsCollection);
-      const specialsList = specialsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSpecials(specialsList);
-    };
-
-    fetchSpecials();
+    // Placeholder for fetching specials data
   }, []);
 
-  const handleDelete = async (id) => {
-    try {
-      await deleteDoc(doc(db, 'specials', id));
-      setSpecials(specials.filter(special => special.id !== id));
-      alert('Special deleted successfully.');
-    } catch (error) {
-      console.error('Error deleting special:', error);
-    }
+  const handleDelete = (id) => {
+    // Placeholder for handling delete action
   };
 
   const handleOpen = (special = null) => {
@@ -47,24 +31,8 @@ function Specials() {
 
   const handleClose = () => setOpen(false);
 
-  const handleSubmit = async () => {
-    try {
-      if (selectedSpecial) {
-        // Update existing special
-        const specialRef = doc(db, 'specials', selectedSpecial.id);
-        await updateDoc(specialRef, { title, description });
-        setSpecials(specials.map(special => (special.id === selectedSpecial.id ? { ...special, title, description } : special)));
-        alert('Special updated successfully.');
-      } else {
-        // Create new special
-        const newSpecialRef = await addDoc(collection(db, 'specials'), { title, description });
-        setSpecials([...specials, { id: newSpecialRef.id, title, description }]);
-        alert('Special created successfully.');
-      }
-      handleClose();
-    } catch (error) {
-      console.error('Error creating/updating special:', error);
-    }
+  const handleSubmit = () => {
+    // Placeholder for handling create/update action
   };
 
   return (
@@ -87,28 +55,36 @@ function Specials() {
         ))}
       </Grid>
 
-      <Modal open={open} onClose={handleClose}>
-        <div style={{ padding: 20 }}>
-          <Typography variant="h6">{selectedSpecial ? 'Edit Special' : 'Add Special'}</Typography>
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle>{selectedSpecial ? 'Edit Special' : 'Add Special'}</DialogTitle>
+        <DialogContent>
           <TextField
             label="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
           <TextField
             label="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setTitle(''); setDescription(''); }} color="warning">
+            Clear Form
+          </Button>
+          <Button onClick={handleClose} color="error">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="success">
             {selectedSpecial ? 'Update' : 'Create'}
           </Button>
-        </div>
-      </Modal>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }

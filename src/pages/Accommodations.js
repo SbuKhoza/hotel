@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Grid, Button, TextField } from '@mui/material';
-import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
 import Layout from '../components/Layout';
+import { db, storage } from '../services/firebase'; // Import Firebase services
+import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore'; // Firestore methods
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage methods
 
 function Accommodations() {
   const [accommodations, setAccommodations] = useState([]);
   const [editingAccommodationId, setEditingAccommodationId] = useState(null);
   const [editingAccommodation, setEditingAccommodation] = useState({ name: '', description: '', images: [] });
   const [loading, setLoading] = useState(true);  // Add loading state
+  const [imageFiles, setImageFiles] = useState([]);  // Image file state
 
   useEffect(() => {
     const fetchAccommodations = async () => {
       try {
-        const accommodationsCollection = collection(db, 'accommodations');
-        const accommodationsSnapshot = await getDocs(accommodationsCollection);
-        const accommodationsList = accommodationsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const querySnapshot = await getDocs(collection(db, 'accommodations'));
+        const accommodationsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setAccommodations(accommodationsList);
       } catch (error) {
         console.error('Failed to fetch accommodations:', error);
@@ -35,35 +38,42 @@ function Accommodations() {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    setEditingAccommodation((prev) => ({ ...prev, images: files }));
+    setImageFiles(files);
   };
 
   const handleClearAll = () => {
     setEditingAccommodation({ name: '', description: '', images: [] });
+    setImageFiles([]);
   };
 
   const handleUpdateAccommodation = async (id) => {
     try {
+      let imageUrls = [];
+
+      if (imageFiles.length > 0) {
+        // Upload new images to Firebase Storage and get their URLs
+        imageUrls = await Promise.all(
+          imageFiles.map(async (file) => {
+            const storageRef = ref(storage, `accommodations/${file.name}`);
+            await uploadBytes(storageRef, file);
+            return await getDownloadURL(storageRef);
+          })
+        );
+      }
+
       const updatedData = {
         name: editingAccommodation.name,
         description: editingAccommodation.description,
+        images: imageUrls.length > 0 ? imageUrls : editingAccommodation.images,
       };
 
-      if (editingAccommodation.images.length > 0) {
-        const imageUrls = await Promise.all(
-          editingAccommodation.images.map(async (imageFile) => {
-            const imageRef = ref(storage, `accommodations/${id}/${imageFile.name}`);
-            await uploadBytes(imageRef, imageFile);
-            const downloadURL = await getDownloadURL(imageRef);
-            return downloadURL;
-          })
-        );
-        updatedData.images = imageUrls;  // Store the image URLs in Firestore
-      }
+      // Update accommodation data in Firestore
+      const docRef = doc(db, 'accommodations', id);
+      await updateDoc(docRef, updatedData);
 
-      await updateDoc(doc(db, 'accommodations', id), updatedData);
       setAccommodations(accommodations.map((acc) => (acc.id === id ? { ...acc, ...updatedData } : acc)));
       setEditingAccommodationId(null);
+      console.log('Accommodation updated successfully');
     } catch (error) {
       console.error('Error updating accommodation:', error);
     }
@@ -71,8 +81,12 @@ function Accommodations() {
 
   const handleDeleteAccommodation = async (id) => {
     try {
-      await deleteDoc(doc(db, 'accommodations', id));
+      // Delete accommodation data from Firestore
+      const docRef = doc(db, 'accommodations', id);
+      await deleteDoc(docRef);
+
       setAccommodations(accommodations.filter((acc) => acc.id !== id));
+      console.log('Accommodation deleted successfully');
     } catch (error) {
       console.error('Error deleting accommodation:', error);
     }

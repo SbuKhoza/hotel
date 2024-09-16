@@ -1,9 +1,10 @@
-// components/Rates.js
-import React, { useEffect, useState } from 'react';
-import { Typography, Card, CardContent, Button, Grid, Modal, TextField } from '@mui/material';
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, CardContent, Button, Grid, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import Layout from '../components/Layout';
+
+// Import Firebase services
+import { db } from '../services/firebase'; // Assuming Firebase is initialized in services/firebase.js
+import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 function Rates() {
   const [rates, setRates] = useState([]);
@@ -13,25 +14,22 @@ function Rates() {
   const [amount, setAmount] = useState('');
 
   useEffect(() => {
+    // Fetch rates from Firestore
     const fetchRates = async () => {
-      const ratesCollection = collection(db, 'rates');
-      const ratesSnapshot = await getDocs(ratesCollection);
-      const ratesList = ratesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRates(ratesList);
+      try {
+        const ratesSnapshot = await getDocs(collection(db, 'rates'));
+        const ratesList = ratesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setRates(ratesList);
+      } catch (error) {
+        console.error('Error fetching rates:', error);
+      }
     };
 
     fetchRates();
   }, []);
-
-  const handleDelete = async (id) => {
-    try {
-      await deleteDoc(doc(db, 'rates', id));
-      setRates(rates.filter(rate => rate.id !== id));
-      alert('Rate deleted successfully.');
-    } catch (error) {
-      console.error('Error deleting rate:', error);
-    }
-  };
 
   const handleOpen = (rate = null) => {
     setSelectedRate(rate);
@@ -50,20 +48,34 @@ function Rates() {
   const handleSubmit = async () => {
     try {
       if (selectedRate) {
-        // Update existing rate
+        // Update existing rate in Firestore
         const rateRef = doc(db, 'rates', selectedRate.id);
         await updateDoc(rateRef, { name, amount });
         setRates(rates.map(rate => (rate.id === selectedRate.id ? { ...rate, name, amount } : rate)));
         alert('Rate updated successfully.');
       } else {
-        // Create new rate
-        const newRateRef = await addDoc(collection(db, 'rates'), { name, amount });
-        setRates([...rates, { id: newRateRef.id, name, amount }]);
+        // Create new rate in Firestore
+        const newRate = { name, amount: `R${amount}` };
+        const docRef = await addDoc(collection(db, 'rates'), newRate);
+        setRates([...rates, { id: docRef.id, ...newRate }]);
         alert('Rate created successfully.');
       }
-      handleClose();
     } catch (error) {
-      console.error('Error creating/updating rate:', error);
+      console.error('Error saving rate:', error);
+      alert('Failed to save rate.');
+    }
+    handleClose();
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      // Delete rate from Firestore
+      await deleteDoc(doc(db, 'rates', id));
+      setRates(rates.filter(rate => rate.id !== id));
+      alert('Rate deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting rate:', error);
+      alert('Failed to delete rate.');
     }
   };
 
@@ -87,28 +99,36 @@ function Rates() {
         ))}
       </Grid>
 
-      <Modal open={open} onClose={handleClose}>
-        <div style={{ padding: 20 }}>
-          <Typography variant="h6">{selectedRate ? 'Edit Rate' : 'Add Rate'}</Typography>
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle>{selectedRate ? 'Edit Rate' : 'Add Rate'}</DialogTitle>
+        <DialogContent>
           <TextField
             label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
           <TextField
-            label="Amount"
+            label="Amount (R)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setName(''); setAmount(''); }} color="warning">
+            Clear Form
+          </Button>
+          <Button onClick={handleClose} color="error">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="success">
             {selectedRate ? 'Update' : 'Create'}
           </Button>
-        </div>
-      </Modal>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }

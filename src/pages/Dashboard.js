@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebaseService';
-
-
-
 import Layout from '../components/Layout'; // Import the Layout component
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+
+// Import Firebase services
+import { db } from '../services/firebase'; // Assuming you have Firebase initialized in services/firebase.js
+import { collection, getDocs } from 'firebase/firestore'; // Firestore methods
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -19,19 +18,33 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const accommodationsCollection = collection(db, 'accommodations');
-      const reservationsCollection = collection(db, 'bookings');
-      const usersCollection = collection(db, 'users');
+      try {
+        // Fetch accommodations from Firestore
+        const accommodationsSnapshot = await getDocs(collection(db, 'accommodations'));
+        const accommodationsList = accommodationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAccommodations(accommodationsList);
 
-      const [accommodationsSnapshot, reservationsSnapshot, usersSnapshot] = await Promise.all([
-        getDocs(accommodationsCollection),
-        getDocs(reservationsCollection),
-        getDocs(usersCollection),
-      ]);
+        // Fetch reservations from Firestore
+        const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
+        const reservationsList = reservationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setReservations(reservationsList);
 
-      setAccommodations(accommodationsSnapshot.docs.map(doc => doc.data()));
-      setReservations(reservationsSnapshot.docs.map(doc => doc.data()));
-      setUsers(usersSnapshot.docs.map(doc => doc.data()));
+        // Fetch users from Firestore
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersList = usersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUsers(usersList);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     };
 
     fetchData();
@@ -43,7 +56,7 @@ function Dashboard() {
     datasets: [
       {
         label: 'Monthly Statistics',
-        data: [10, 25, 15, 30, 20, 35],
+        data: [10, 25, 15, 30, 20, 35], // Example static data
         fill: false,
         borderColor: 'rgba(75,192,192,1)',
         tension: 0.1,

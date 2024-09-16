@@ -1,19 +1,27 @@
-// Reservations.js
 import React, { useEffect, useState } from 'react';
 import { Typography, Card, CardContent, Button, Grid } from '@mui/material';
-import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
 import Layout from '../components/Layout';
+
+// Import Firebase services
+import { db } from '../services/firebase'; // Assuming Firebase is initialized in services/firebase.js
+import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 function Reservations() {
   const [reservations, setReservations] = useState([]);
 
+  // Fetch reservations from Firestore
   useEffect(() => {
     const fetchReservations = async () => {
-      const reservationsCollection = collection(db, 'bookings');
-      const reservationsSnapshot = await getDocs(reservationsCollection);
-      const reservationsList = reservationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setReservations(reservationsList);
+      try {
+        const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
+        const reservationsList = reservationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setReservations(reservationsList);
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+      }
     };
 
     fetchReservations();
@@ -21,10 +29,10 @@ function Reservations() {
 
   const handleApprove = async (id) => {
     try {
-      await updateDoc(doc(db, 'bookings', id), { status: 'Approved' });
-      setReservations(
-        reservations.map(res => res.id === id ? { ...res, status: 'Approved' } : res)
-      );
+      const reservationRef = doc(db, 'reservations', id);
+      await updateDoc(reservationRef, { status: 'Approved' });
+      setReservations(reservations.map(res => (res.id === id ? { ...res, status: 'Approved' } : res)));
+      alert('Reservation approved.');
     } catch (error) {
       console.error('Error approving reservation:', error);
     }
@@ -32,10 +40,10 @@ function Reservations() {
 
   const handleReject = async (id) => {
     try {
-      await updateDoc(doc(db, 'bookings', id), { status: 'Rejected' });
-      setReservations(
-        reservations.map(res => res.id === id ? { ...res, status: 'Rejected' } : res)
-      );
+      const reservationRef = doc(db, 'reservations', id);
+      await updateDoc(reservationRef, { status: 'Rejected' });
+      setReservations(reservations.map(res => (res.id === id ? { ...res, status: 'Rejected' } : res)));
+      alert('Reservation rejected.');
     } catch (error) {
       console.error('Error rejecting reservation:', error);
     }
@@ -43,9 +51,9 @@ function Reservations() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteDoc(doc(db, 'bookings', id));
-      setReservations(reservations.filter(res => res.id !== id));
-      alert('Reservation deleted successfully.');
+      await deleteDoc(doc(db, 'reservations', id));
+      setReservations(reservations.filter(reservation => reservation.id !== id));
+      alert('Reservation deleted.');
     } catch (error) {
       console.error('Error deleting reservation:', error);
     }

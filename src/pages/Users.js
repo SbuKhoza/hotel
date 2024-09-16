@@ -1,9 +1,10 @@
-// components/Users.js
 import React, { useEffect, useState } from 'react';
-import { Typography, Card, CardContent, Button, Grid, Modal, TextField } from '@mui/material';
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { Typography, Card, CardContent, Button, Grid, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import Layout from '../components/Layout';
+
+// Import Firebase services
+import { db } from '../services/firebase'; // Assuming Firebase is initialized in services/firebase.js
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -12,12 +13,19 @@ function Users() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
 
+  // Fetch users from Firestore
   useEffect(() => {
     const fetchUsers = async () => {
-      const usersCollection = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersCollection);
-      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setUsers(usersList);
+      try {
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersList = usersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUsers(usersList);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
     };
 
     fetchUsers();
@@ -27,7 +35,7 @@ function Users() {
     try {
       await deleteDoc(doc(db, 'users', id));
       setUsers(users.filter(user => user.id !== id));
-      alert('User deleted successfully.');
+      alert('User deleted.');
     } catch (error) {
       console.error('Error deleting user:', error);
     }
@@ -48,23 +56,28 @@ function Users() {
   const handleClose = () => setOpen(false);
 
   const handleSubmit = async () => {
-    try {
-      if (selectedUser) {
-        // Update existing user
+    if (selectedUser) {
+      // Update existing user
+      try {
         const userRef = doc(db, 'users', selectedUser.id);
         await updateDoc(userRef, { name, email });
         setUsers(users.map(user => (user.id === selectedUser.id ? { ...user, name, email } : user)));
         alert('User updated successfully.');
-      } else {
-        // Create new user
-        const newUserRef = await addDoc(collection(db, 'users'), { name, email });
-        setUsers([...users, { id: newUserRef.id, name, email }]);
-        alert('User created successfully.');
+      } catch (error) {
+        console.error('Error updating user:', error);
       }
-      handleClose();
-    } catch (error) {
-      console.error('Error creating/updating user:', error);
+    } else {
+      // Create new user
+      try {
+        const newUser = { name, email };
+        const docRef = await addDoc(collection(db, 'users'), newUser);
+        setUsers([...users, { id: docRef.id, ...newUser }]);
+        alert('User added successfully.');
+      } catch (error) {
+        console.error('Error adding user:', error);
+      }
     }
+    handleClose();
   };
 
   return (
@@ -87,28 +100,36 @@ function Users() {
         ))}
       </Grid>
 
-      <Modal open={open} onClose={handleClose}>
-        <div style={{ padding: 20 }}>
-          <Typography variant="h6">{selectedUser ? 'Edit User' : 'Add User'}</Typography>
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle>{selectedUser ? 'Edit User' : 'Add User'}</DialogTitle>
+        <DialogContent>
           <TextField
             label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
           <TextField
             label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
-            margin="normal"
+            margin="dense"
           />
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setName(''); setEmail(''); }} color="warning">
+            Clear Form
+          </Button>
+          <Button onClick={handleClose} color="error">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="success">
             {selectedUser ? 'Update' : 'Create'}
           </Button>
-        </div>
-      </Modal>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }
