@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; 
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl, Snackbar, Alert
+  Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl, Snackbar, Alert, CircularProgress, Popover
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -13,17 +13,18 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
 import { DatePicker, TimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 import './AdminDashboard.css';
 import { db, storage, auth } from '../services/firebase'; // Import Firebase services
-import { collection, addDoc, doc, setDoc } from 'firebase/firestore'; // Firestore methods
+import { collection, addDoc } from 'firebase/firestore'; // Firestore methods
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage methods
-import { createUserWithEmailAndPassword } from 'firebase/auth'; // Firebase Authentication
+import { updateProfile } from 'firebase/auth'; // Firebase Authentication
 
 function AdminDashboard() {
   const location = useLocation();
   const [openAccommodationDialog, setOpenAccommodationDialog] = useState(false);
   const [openBookingDialog, setOpenBookingDialog] = useState(false);
+  const [openProfileDialog, setOpenProfileDialog] = useState(false); // Profile update dialog
+  const [profileData, setProfileData] = useState({ displayName: '', email: '' }); // Admin profile data
   const [accommodationData, setAccommodationData] = useState({
     name: '',
     description: '',
@@ -42,7 +43,10 @@ function AdminDashboard() {
     numberOfGuests: ''
   });
   const [imageFiles, setImageFiles] = useState([]);
-  const [authError, setAuthError] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null); // Anchor for search popup
   const [successMessage, setSuccessMessage] = useState(false);
 
   const amenitiesOptions = [
@@ -67,11 +71,7 @@ function AdminDashboard() {
 
   const handleAccommodationChange = (event) => {
     const { name, value } = event.target;
-    if (name === 'amenities') {
-      setAccommodationData({ ...accommodationData, [name]: value });
-    } else {
-      setAccommodationData({ ...accommodationData, [name]: value });
-    }
+    setAccommodationData({ ...accommodationData, [name]: value });
   };
 
   const handleBookingChange = (event) => {
@@ -86,15 +86,9 @@ function AdminDashboard() {
 
   const handleAccommodationSubmit = async (event) => {
     event.preventDefault();
-
-    // Check if user is authenticated
-    if (!auth.currentUser) {
-      setAuthError(true); // Trigger error snackbar if not authenticated
-      return;
-    }
+    setLoading(true); // Start loader
 
     try {
-      // Upload images to Firebase Storage and get their URLs
       const imageUrls = await Promise.all(
         imageFiles.map(async (file) => {
           const storageRef = ref(storage, `accommodations/${file.name}`);
@@ -103,7 +97,6 @@ function AdminDashboard() {
         })
       );
 
-      // Add accommodation data to Firestore
       await addDoc(collection(db, 'accommodations'), {
         ...accommodationData,
         images: imageUrls,
@@ -112,22 +105,25 @@ function AdminDashboard() {
 
       clearAccommodationForm();
       handleCloseAccommodationDialog();
-      setSuccessMessage(true); // Trigger success snackbar
-      console.log('Accommodation added successfully');
+      setSuccessMessage(true);
     } catch (error) {
       console.error('Error saving accommodation: ', error);
+    } finally {
+      setLoading(false); // Stop loader
     }
   };
 
   const handleBookingSubmit = async (event) => {
     event.preventDefault();
+    setLoading(true); // Start loader
+
     try {
-      // Simulate saving booking data
-      console.log("Booking data:", bookingData);
       clearBookingForm();
       handleCloseBookingDialog();
     } catch (error) {
-      console.error("Error saving booking: ", error);
+      console.error('Error saving booking: ', error);
+    } finally {
+      setLoading(false); // Stop loader
     }
   };
 
@@ -155,67 +151,42 @@ function AdminDashboard() {
     });
   };
 
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case '/dashboard':
-        return 'Dashboard';
-      case '/guests':
-        return 'Guests';
-      case '/accommodations':
-        return 'Accommodations';
-      case '/rates':
-        return 'Rates';
-      case '/specials':
-        return 'Specials';
-      case '/users':
-        return 'Users';
-      case '/reservations':
-        return 'Reservations';
-      case '/login':
-        return 'Login';
-      default:
-        return 'Dashboard';
-    }
+  const handleProfileClick = () => {
+    setProfileData({ displayName: auth.currentUser?.displayName || '', email: auth.currentUser?.email || '' });
+    setOpenProfileDialog(true);
   };
 
-  // Function to create a new user (admin or guest)
-  const createNewUser = async (email, password, role) => {
+  const handleProfileUpdate = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Save user data to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email,
-        role, // e.g., 'admin' or 'user'
-        createdAt: new Date()
+      await updateProfile(auth.currentUser, {
+        displayName: profileData.displayName,
+        email: profileData.email,
       });
-
-      console.log('User created and saved in Firestore');
+      setSuccessMessage(true);
+      setOpenProfileDialog(false);
     } catch (error) {
-      console.error('Error creating new user:', error);
+      console.error('Error updating profile: ', error);
     }
   };
 
-  // New function to create admin user
-  const createAdminUser = async () => {
-    const adminEmail = 'sbudamalloya@gmail.com';
-    const adminPassword = '123456';
-    const role = 'admin';
-
-    try {
-      // Create an admin user with specified credentials
-      await createNewUser(adminEmail, adminPassword, role);
-      console.log('Admin created successfully');
-    } catch (error) {
-      console.error('Error creating admin user:', error);
+  const handleSearchChange = (event) => {
+    const query = event.target.value;
+    setSearchQuery(query);
+    if (query.length > 2) {
+      // Simulate search results for the example
+      setSearchResults(['Result 1', 'Result 2', 'Result 3']);
+    } else {
+      setSearchResults([]);
     }
   };
 
-  // Trigger the admin creation on component mount
-  useEffect(() => {
-    createAdminUser();
-  }, []);
+  const handleSearchClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleSearchClose = () => {
+    setAnchorEl(null);
+  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -282,204 +253,228 @@ function AdminDashboard() {
               <ListItemText primary="Notifications" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button>
+            <ListItem button component={Link} to="/logout">
               <ListItemIcon sx={{ color: '#fff' }}>
                 <LogoutIcon />
               </ListItemIcon>
-              <ListItemText primary="Login / Logout" sx={{ color: '#fff' }} /> 
-
+              <ListItemText primary="Logout" sx={{ color: '#fff' }} />
             </ListItem>
           </List>
         </Drawer>
 
         <div className="content">
           
-          
-          <div className="main-content">
-            {/* <Typography variant="h4" sx={{ marginBottom: 4 }}>
-              {getPageTitle()}
-            </Typography> */}
 
-            {/* Accommodations Button */}
+          {/* Accommodation and Booking Buttons */}
+          <div className="button-container">
             <Button variant="contained" color="primary" onClick={handleClickOpenAccommodationDialog}>
               Add Accommodation
             </Button>
-
-            {/* Booking Button */}
             <Button variant="contained" color="secondary" onClick={handleClickOpenBookingDialog}>
               Add Booking
             </Button>
+          </div>
 
-            {/* Add Accommodation Dialog */}
-            <Dialog open={openAccommodationDialog} onClose={handleCloseAccommodationDialog}>
-              <DialogTitle>Add New Accommodation</DialogTitle>
-              <DialogContent>
-                <TextField
-                  name="name"
-                  label="Accommodation Name"
-                  value={accommodationData.name}
-                  onChange={handleAccommodationChange}
-                  fullWidth
-                />
-                <TextField
-                  name="description"
-                  label="Description"
-                  value={accommodationData.description}
-                  onChange={handleAccommodationChange}
-                  fullWidth
-                  multiline
-                  rows={4}
-                  sx={{ mt: 2 }}
-                />
-                <TextField
-                  name="price"
-                  label="Price per Night"
-                  value={accommodationData.price}
-                  onChange={handleAccommodationChange}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel>Availability</InputLabel>
-                  <Select
-                    name="availability"
-                    value={accommodationData.availability}
-                    onChange={handleAccommodationChange}
-                  >
-                    <MenuItem value="available">Available</MenuItem>
-                    <MenuItem value="unavailable">Unavailable</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel>Amenities</InputLabel>
-                  <Select
-                    name="amenities"
-                    multiple
-                    value={accommodationData.amenities}
-                    onChange={handleAccommodationChange}
-                    renderValue={(selected) => selected.join(', ')}
-                  >
-                    {amenitiesOptions.map((amenity) => (
-                      <MenuItem key={amenity} value={amenity}>
-                        {amenity}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button variant="contained" component="label" sx={{ mt: 2 }}>
-                  Upload Images
-                  <input
-                    type="file"
-                    multiple
-                    hidden
-                    onChange={handleFileChange}
+          <header className="header">
+            <div className="search-container">
+              <IconButton sx={{ color: '#fff' }} onClick={handleSearchClick}>
+                <SearchIcon />
+              </IconButton>
+              <Popover
+                open={Boolean(anchorEl)}
+                anchorEl={anchorEl}
+                onClose={handleSearchClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                }}
+              >
+                <div style={{ padding: '10px' }}>
+                  <InputBase
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    sx={{ width: '300px' }}
                   />
-                </Button>
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={handleCloseAccommodationDialog}>Cancel</Button>
-                <Button onClick={handleAccommodationSubmit} color="primary">
-                  Save
-                </Button>
-              </DialogActions>
-            </Dialog>
+                  {searchResults.length > 0 && (
+                    <List>
+                      {searchResults.map((result, index) => (
+                        <ListItem key={index}>{result}</ListItem>
+                      ))}
+                    </List>
+                  )}
+                </div>
+              </Popover>
+            </div>
 
-            {/* Add Booking Dialog */}
-            <Dialog open={openBookingDialog} onClose={handleCloseBookingDialog}>
-              <DialogTitle>Add New Booking</DialogTitle>
-              <DialogContent>
-                <TextField
-                  name="clientName"
-                  label="Client Name"
-                  value={bookingData.clientName}
-                  onChange={handleBookingChange}
-                  fullWidth
-                />
-                <DatePicker
-                  label="Check-In Date"
-                  value={bookingData.checkInDate}
-                  onChange={(date) => setBookingData({ ...bookingData, checkInDate: dayjs(date) })}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <TimePicker
-                  label="Check-In Time"
-                  value={bookingData.checkInTime}
-                  onChange={(time) => setBookingData({ ...bookingData, checkInTime: time })}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <DatePicker
-                  label="Check-Out Date"
-                  value={bookingData.checkOutDate}
-                  onChange={(date) => setBookingData({ ...bookingData, checkOutDate: dayjs(date) })}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <TimePicker
-                  label="Check-Out Time"
-                  value={bookingData.checkOutTime}
-                  onChange={(time) => setBookingData({ ...bookingData, checkOutTime: time })}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <TextField
-                  name="accommodation"
-                  label="Accommodation"
-                  value={bookingData.accommodation}
-                  onChange={handleBookingChange}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-                <TextField
-                  name="numberOfGuests"
-                  label="Number of Guests"
-                  value={bookingData.numberOfGuests}
-                  onChange={handleBookingChange}
-                  fullWidth
-                  sx={{ mt: 2 }}
-                />
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={handleCloseBookingDialog}>Cancel</Button>
-                <Button onClick={handleBookingSubmit} color="primary">
-                  Save
-                </Button>
-              </DialogActions>
-            </Dialog>
+            <div className="avatar-container">
+              <IconButton onClick={handleProfileClick}>
+                <Avatar src={auth.currentUser?.photoURL} alt="Admin" />
+              </IconButton>
+            </div>
+          </header>
 
-            {/* Success Snackbar */}
-            <Snackbar
-              open={successMessage}
-              autoHideDuration={6000}
-              onClose={() => setSuccessMessage(false)}
-            >
-              <Alert onClose={() => setSuccessMessage(false)} severity="success" sx={{ width: '100%' }}>
-                Accommodation added successfully!
-              </Alert>
-            </Snackbar>
+          {/* Loader */}
+          {loading && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
 
-            {/* Error Snackbar */}
-            <Snackbar
-              open={authError}
-              autoHideDuration={6000}
-              onClose={() => setAuthError(false)}
-            >
-              <Alert onClose={() => setAuthError(false)} severity="error" sx={{ width: '100%' }}>
-                Please log in to add accommodations.
-              </Alert>
-            </Snackbar>
-          </div>
+          {/* Accommodation Dialog */}
+          <Dialog open={openAccommodationDialog} onClose={handleCloseAccommodationDialog}>
+            <DialogTitle>Add Accommodation</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Name"
+                name="name"
+                value={accommodationData.name}
+                onChange={handleAccommodationChange}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Description"
+                name="description"
+                value={accommodationData.description}
+                onChange={handleAccommodationChange}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Price"
+                name="price"
+                value={accommodationData.price}
+                onChange={handleAccommodationChange}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Availability"
+                name="availability"
+                value={accommodationData.availability}
+                onChange={handleAccommodationChange}
+                fullWidth
+                margin="normal"
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Amenities</InputLabel>
+                <Select
+                  label="Amenities"
+                  name="amenities"
+                  value={accommodationData.amenities}
+                  onChange={handleAccommodationChange}
+                  multiple
+                >
+                  {amenitiesOptions.map((amenity) => (
+                    <MenuItem key={amenity} value={amenity}>
+                      {amenity}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <input type="file" multiple onChange={handleFileChange} />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseAccommodationDialog}>Cancel</Button>
+              <Button onClick={handleAccommodationSubmit} color="primary" disabled={loading}>
+                Add Accommodation
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-          <div className="header">
-            <IconButton>
-              <SearchIcon />
-            </IconButton>
-            <InputBase placeholder="Search" />
-            <Avatar sx={{ ml: 'auto' }} />
-          </div>
+          {/* Booking Dialog */}
+          <Dialog open={openBookingDialog} onClose={handleCloseBookingDialog}>
+            <DialogTitle>Add Booking</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Client Name"
+                name="clientName"
+                value={bookingData.clientName}
+                onChange={handleBookingChange}
+                fullWidth
+                margin="normal"
+              />
+              <DatePicker
+                label="Check-In Date"
+                value={bookingData.checkInDate}
+                onChange={(date) => setBookingData({ ...bookingData, checkInDate: date })}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+              />
+              <TimePicker
+                label="Check-In Time"
+                value={bookingData.checkInTime}
+                onChange={(time) => setBookingData({ ...bookingData, checkInTime: time })}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+              />
+              <DatePicker
+                label="Check-Out Date"
+                value={bookingData.checkOutDate}
+                onChange={(date) => setBookingData({ ...bookingData, checkOutDate: date })}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+              />
+              <TimePicker
+                label="Check-Out Time"
+                value={bookingData.checkOutTime}
+                onChange={(time) => setBookingData({ ...bookingData, checkOutTime: time })}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+              />
+              <TextField
+                label="Accommodation"
+                name="accommodation"
+                value={bookingData.accommodation}
+                onChange={handleBookingChange}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Number of Guests"
+                name="numberOfGuests"
+                value={bookingData.numberOfGuests}
+                onChange={handleBookingChange}
+                fullWidth
+                margin="normal"
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseBookingDialog}>Cancel</Button>
+              <Button onClick={handleBookingSubmit} color="primary" disabled={loading}>
+                Add Booking
+              </Button>
+            </DialogActions>
+          </Dialog>
 
+          {/* Profile Update Dialog */}
+          <Dialog open={openProfileDialog} onClose={() => setOpenProfileDialog(false)}>
+            <DialogTitle>Update Profile</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Display Name"
+                value={profileData.displayName}
+                onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Email"
+                value={profileData.email}
+                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                fullWidth
+                margin="normal"
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenProfileDialog(false)}>Cancel</Button>
+              <Button onClick={handleProfileUpdate} color="primary">
+                Update
+              </Button>
+            </DialogActions>
+          </Dialog>
 
+          {/* Snackbar */}
+          <Snackbar
+            open={successMessage}
+            autoHideDuration={3000}
+            onClose={() => setSuccessMessage(false)}
+          >
+            <Alert severity="success">Operation completed successfully!</Alert>
+          </Snackbar>
         </div>
       </div>
     </LocalizationProvider>
