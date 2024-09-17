@@ -338,7 +338,7 @@ function AdminDashboard() {
                 margin="normal"
               />
               <TextField
-                label="Price"
+                label="Price (R)"
                 name="price"
                 value={accommodationData.price}
                 onChange={handleAccommodationChange}
