@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl
+  Drawer, List, ListItem, ListItemText, ListItemIcon, Avatar, IconButton, InputBase, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -29,7 +29,7 @@ function AdminDashboard() {
     description: '',
     price: '',
     availability: '',
-    amenities: [], // Initialize as an array
+    amenities: [],
     images: []
   });
   const [bookingData, setBookingData] = useState({
@@ -42,6 +42,8 @@ function AdminDashboard() {
     numberOfGuests: ''
   });
   const [imageFiles, setImageFiles] = useState([]);
+  const [authError, setAuthError] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(false);
 
   const amenitiesOptions = [
     'WiFi', 'Parking', 'Pool', 'Gym', 'Spa', 'Restaurant', 'Bar', 'Laundry'
@@ -84,6 +86,13 @@ function AdminDashboard() {
 
   const handleAccommodationSubmit = async (event) => {
     event.preventDefault();
+
+    // Check if user is authenticated
+    if (!auth.currentUser) {
+      setAuthError(true); // Trigger error snackbar if not authenticated
+      return;
+    }
+
     try {
       // Upload images to Firebase Storage and get their URLs
       const imageUrls = await Promise.all(
@@ -98,11 +107,12 @@ function AdminDashboard() {
       await addDoc(collection(db, 'accommodations'), {
         ...accommodationData,
         images: imageUrls,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       clearAccommodationForm();
       handleCloseAccommodationDialog();
+      setSuccessMessage(true); // Trigger success snackbar
       console.log('Accommodation added successfully');
     } catch (error) {
       console.error('Error saving accommodation: ', error);
@@ -161,8 +171,10 @@ function AdminDashboard() {
         return 'Users';
       case '/reservations':
         return 'Reservations';
+      case '/login':
+        return 'Login';
       default:
-        return 'Admin Dashboard';
+        return 'Dashboard';
     }
   };
 
@@ -175,7 +187,7 @@ function AdminDashboard() {
       // Save user data to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
-        role,  // e.g., 'admin' or 'user'
+        role, // e.g., 'admin' or 'user'
         createdAt: new Date()
       });
 
@@ -184,6 +196,26 @@ function AdminDashboard() {
       console.error('Error creating new user:', error);
     }
   };
+
+  // New function to create admin user
+  const createAdminUser = async () => {
+    const adminEmail = 'sbudamalloya@gmail.com';
+    const adminPassword = '123456';
+    const role = 'admin';
+
+    try {
+      // Create an admin user with specified credentials
+      await createNewUser(adminEmail, adminPassword, role);
+      console.log('Admin created successfully');
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+    }
+  };
+
+  // Trigger the admin creation on component mount
+  useEffect(() => {
+    createAdminUser();
+  }, []);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -243,95 +275,87 @@ function AdminDashboard() {
               <ListItemText primary="Specials" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button component={Link} to="/users">
+            <ListItem button>
               <ListItemIcon sx={{ color: '#fff' }}>
-                <PeopleIcon />
+                <NotificationsIcon />
               </ListItemIcon>
-              <ListItemText primary="Users" sx={{ color: '#fff' }} />
+              <ListItemText primary="Notifications" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button component={Link} to="/reservations">
-              <ListItemIcon sx={{ color: '#fff' }}>
-                <HotelIcon />
-              </ListItemIcon>
-              <ListItemText primary="Reservations" sx={{ color: '#fff' }} />
-            </ListItem>
-
-            <ListItem button component={Link} to="/logout">
+            <ListItem button>
               <ListItemIcon sx={{ color: '#fff' }}>
                 <LogoutIcon />
               </ListItemIcon>
-              <ListItemText primary="Logout" sx={{ color: '#fff' }} />
+              <ListItemText primary="Login / Logout" sx={{ color: '#fff' }} /> 
+
             </ListItem>
           </List>
         </Drawer>
 
-        <div className="container">
-          <div className="top-bar">
-            <div className="top-left">
-              <Typography variant="h6">{getPageTitle()}</Typography>
-              <IconButton size="large">
-                <SearchIcon />
-              </IconButton>
-              <InputBase placeholder="Search..." />
-            </div>
-            <div className="top-right">
-              <IconButton size="large">
-                <NotificationsIcon />
-              </IconButton>
-              <IconButton size="large">
-                <Avatar alt="User Avatar" />
-              </IconButton>
-            </div>
-          </div>
+        <div className="content">
+          
+          
+          <div className="main-content">
+            {/* <Typography variant="h4" sx={{ marginBottom: 4 }}>
+              {getPageTitle()}
+            </Typography> */}
 
-          <div className="content">
-            <Button onClick={handleClickOpenAccommodationDialog} variant="contained" color="primary">Add Accommodation</Button>
-            <Button onClick={handleClickOpenBookingDialog} variant="contained" color="secondary">Add Booking</Button>
+            {/* Accommodations Button */}
+            <Button variant="contained" color="primary" onClick={handleClickOpenAccommodationDialog}>
+              Add Accommodation
+            </Button>
 
+            {/* Booking Button */}
+            <Button variant="contained" color="secondary" onClick={handleClickOpenBookingDialog}>
+              Add Booking
+            </Button>
+
+            {/* Add Accommodation Dialog */}
             <Dialog open={openAccommodationDialog} onClose={handleCloseAccommodationDialog}>
-              <DialogTitle>Add Accommodation</DialogTitle>
+              <DialogTitle>Add New Accommodation</DialogTitle>
               <DialogContent>
                 <TextField
-                  margin="dense"
                   name="name"
                   label="Accommodation Name"
-                  fullWidth
                   value={accommodationData.name}
                   onChange={handleAccommodationChange}
+                  fullWidth
                 />
                 <TextField
-                  margin="dense"
                   name="description"
                   label="Description"
-                  fullWidth
-                  multiline
-                  rows={3}
                   value={accommodationData.description}
                   onChange={handleAccommodationChange}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  sx={{ mt: 2 }}
                 />
                 <TextField
-                  margin="dense"
                   name="price"
-                  label="Price"
-                  fullWidth
+                  label="Price per Night"
                   value={accommodationData.price}
                   onChange={handleAccommodationChange}
-                />
-                <TextField
-                  margin="dense"
-                  name="availability"
-                  label="Availability"
                   fullWidth
-                  value={accommodationData.availability}
-                  onChange={handleAccommodationChange}
+                  sx={{ mt: 2 }}
                 />
-                <FormControl fullWidth margin="dense">
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Availability</InputLabel>
+                  <Select
+                    name="availability"
+                    value={accommodationData.availability}
+                    onChange={handleAccommodationChange}
+                  >
+                    <MenuItem value="available">Available</MenuItem>
+                    <MenuItem value="unavailable">Unavailable</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth sx={{ mt: 2 }}>
                   <InputLabel>Amenities</InputLabel>
                   <Select
+                    name="amenities"
                     multiple
                     value={accommodationData.amenities}
-                    name="amenities"
                     onChange={handleAccommodationChange}
                     renderValue={(selected) => selected.join(', ')}
                   >
@@ -342,69 +366,120 @@ function AdminDashboard() {
                     ))}
                   </Select>
                 </FormControl>
-                <input type="file" multiple onChange={handleFileChange} />
+                <Button variant="contained" component="label" sx={{ mt: 2 }}>
+                  Upload Images
+                  <input
+                    type="file"
+                    multiple
+                    hidden
+                    onChange={handleFileChange}
+                  />
+                </Button>
               </DialogContent>
               <DialogActions>
                 <Button onClick={handleCloseAccommodationDialog}>Cancel</Button>
-                <Button onClick={handleAccommodationSubmit} color="primary">Submit</Button>
+                <Button onClick={handleAccommodationSubmit} color="primary">
+                  Save
+                </Button>
               </DialogActions>
             </Dialog>
 
+            {/* Add Booking Dialog */}
             <Dialog open={openBookingDialog} onClose={handleCloseBookingDialog}>
-              <DialogTitle>Add Booking</DialogTitle>
+              <DialogTitle>Add New Booking</DialogTitle>
               <DialogContent>
                 <TextField
-                  margin="dense"
                   name="clientName"
                   label="Client Name"
-                  fullWidth
                   value={bookingData.clientName}
                   onChange={handleBookingChange}
+                  fullWidth
                 />
                 <DatePicker
                   label="Check-In Date"
                   value={bookingData.checkInDate}
-                  onChange={(date) => handleBookingChange({ target: { name: 'checkInDate', value: dayjs(date) } })}
-                  renderInput={(params) => <TextField {...params} fullWidth margin="dense" />}
+                  onChange={(date) => setBookingData({ ...bookingData, checkInDate: dayjs(date) })}
+                  fullWidth
+                  sx={{ mt: 2 }}
                 />
                 <TimePicker
                   label="Check-In Time"
                   value={bookingData.checkInTime}
-                  onChange={(time) => handleBookingChange({ target: { name: 'checkInTime', value: dayjs(time) } })}
-                  renderInput={(params) => <TextField {...params} fullWidth margin="dense" />}
+                  onChange={(time) => setBookingData({ ...bookingData, checkInTime: time })}
+                  fullWidth
+                  sx={{ mt: 2 }}
                 />
                 <DatePicker
                   label="Check-Out Date"
                   value={bookingData.checkOutDate}
-                  onChange={(date) => handleBookingChange({ target: { name: 'checkOutDate', value: dayjs(date) } })}
-                  renderInput={(params) => <TextField {...params} fullWidth margin="dense" />}
+                  onChange={(date) => setBookingData({ ...bookingData, checkOutDate: dayjs(date) })}
+                  fullWidth
+                  sx={{ mt: 2 }}
                 />
                 <TimePicker
                   label="Check-Out Time"
                   value={bookingData.checkOutTime}
-                  onChange={(time) => handleBookingChange({ target: { name: 'checkOutTime', value: dayjs(time) } })}
-                  renderInput={(params) => <TextField {...params} fullWidth margin="dense" />}
+                  onChange={(time) => setBookingData({ ...bookingData, checkOutTime: time })}
+                  fullWidth
+                  sx={{ mt: 2 }}
                 />
                 <TextField
-                  margin="dense"
+                  name="accommodation"
+                  label="Accommodation"
+                  value={bookingData.accommodation}
+                  onChange={handleBookingChange}
+                  fullWidth
+                  sx={{ mt: 2 }}
+                />
+                <TextField
                   name="numberOfGuests"
                   label="Number of Guests"
-                  fullWidth
                   value={bookingData.numberOfGuests}
                   onChange={handleBookingChange}
+                  fullWidth
+                  sx={{ mt: 2 }}
                 />
               </DialogContent>
               <DialogActions>
                 <Button onClick={handleCloseBookingDialog}>Cancel</Button>
-                <Button onClick={handleBookingSubmit} color="primary">Submit</Button>
+                <Button onClick={handleBookingSubmit} color="primary">
+                  Save
+                </Button>
               </DialogActions>
             </Dialog>
 
-            {/* Example button to create new users */}
-            <Button onClick={() => createNewUser('admin@example.com', 'password123', 'admin')} variant="contained">
-              Create Admin
-            </Button>
+            {/* Success Snackbar */}
+            <Snackbar
+              open={successMessage}
+              autoHideDuration={6000}
+              onClose={() => setSuccessMessage(false)}
+            >
+              <Alert onClose={() => setSuccessMessage(false)} severity="success" sx={{ width: '100%' }}>
+                Accommodation added successfully!
+              </Alert>
+            </Snackbar>
+
+            {/* Error Snackbar */}
+            <Snackbar
+              open={authError}
+              autoHideDuration={6000}
+              onClose={() => setAuthError(false)}
+            >
+              <Alert onClose={() => setAuthError(false)} severity="error" sx={{ width: '100%' }}>
+                Please log in to add accommodations.
+              </Alert>
+            </Snackbar>
           </div>
+
+          <div className="header">
+            <IconButton>
+              <SearchIcon />
+            </IconButton>
+            <InputBase placeholder="Search" />
+            <Avatar sx={{ ml: 'auto' }} />
+          </div>
+
+
         </div>
       </div>
     </LocalizationProvider>

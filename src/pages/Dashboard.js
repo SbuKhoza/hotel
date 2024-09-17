@@ -110,7 +110,7 @@ function Dashboard() {
       </Grid>
 
       {/* Additional content like charts */}
-      <Box sx={{ mt: 5, height: 300 }}> 
+      <Box sx={{ mt: 5, height: 620 }}> 
         <Typography variant="h6" sx={{ mb: 2 }}>Monthly Statistics</Typography>
         <Card>
           <CardContent sx={{ p: 0 }}>
