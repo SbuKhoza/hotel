@@ -24,7 +24,7 @@ function Accommodations() {
       } catch (error) {
         console.error('Failed to fetch accommodations:', error);
       } finally {
-        setLoading(false);  // Set loading to false after fetching data
+        setLoading(false);  
       }
     };
 

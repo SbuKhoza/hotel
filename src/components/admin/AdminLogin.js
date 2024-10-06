@@ -6,7 +6,7 @@ import { auth, db } from '../../services/firebase'; // Import Firestore
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // Firestore functions for document retrieval
 
-function AdminLogin({ onClose }) {  // Accept onClose prop
+function AdminLogin({ onClose }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +23,7 @@ function AdminLogin({ onClose }) {  // Accept onClose prop
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Check if user is an admin
+      // Check if user is an admin by looking for their UID in the admins collection
       const adminDocRef = doc(db, 'admins', user.uid); // Reference to admin doc using UID
       const adminDocSnap = await getDoc(adminDocRef);
 

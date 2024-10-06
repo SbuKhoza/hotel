@@ -32,7 +32,7 @@ function App() {
       
       <AdminDashboard/>
       <Routes>
-        
+      
         <Route path="/" element={<Dashboard />} />
         <Route path="/guests" element={<Guests />} />
         <Route path="/accommodations" element={<Accommodations />} />
@@ -41,6 +41,7 @@ function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/reservations" element={<Reservations />} />
         <Route path="/login" element={<Login />} />
+        
       </Routes>
     </Router>
   );

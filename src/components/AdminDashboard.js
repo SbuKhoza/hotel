@@ -31,7 +31,8 @@ function AdminDashboard() {
     price: '',
     availability: '',
     amenities: [],
-    images: []
+    images: [],
+    frontPicture: '' // Added front picture field
   });
   const [bookingData, setBookingData] = useState({
     clientName: '',
@@ -42,7 +43,8 @@ function AdminDashboard() {
     accommodation: '',
     numberOfGuests: ''
   });
-  const [imageFiles, setImageFiles] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]); // For additional images
+  const [frontPictureFile, setFrontPictureFile] = useState(null); // For front picture
   const [loading, setLoading] = useState(false); // Loading state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -84,11 +86,24 @@ function AdminDashboard() {
     setImageFiles(files);
   };
 
+  const handleFrontPictureChange = (event) => {
+    setFrontPictureFile(event.target.files[0]); // Handle single front picture upload
+  };
+
   const handleAccommodationSubmit = async (event) => {
     event.preventDefault();
     setLoading(true); // Start loader
 
     try {
+      // Upload front picture to Firebase Storage
+      let frontPictureUrl = '';
+      if (frontPictureFile) {
+        const frontPictureRef = ref(storage, `accommodations/front_pictures/${frontPictureFile.name}`);
+        await uploadBytes(frontPictureRef, frontPictureFile);
+        frontPictureUrl = await getDownloadURL(frontPictureRef);
+      }
+
+      // Upload additional images to Firebase Storage
       const imageUrls = await Promise.all(
         imageFiles.map(async (file) => {
           const storageRef = ref(storage, `accommodations/${file.name}`);
@@ -97,9 +112,11 @@ function AdminDashboard() {
         })
       );
 
+      // Save accommodation data to Firestore
       await addDoc(collection(db, 'accommodations'), {
         ...accommodationData,
         images: imageUrls,
+        frontPicture: frontPictureUrl, // Include the front picture URL
         createdAt: new Date(),
       });
 
@@ -134,9 +151,11 @@ function AdminDashboard() {
       price: '',
       availability: '',
       amenities: [],
-      images: []
+      images: [],
+      frontPicture: ''
     });
     setImageFiles([]);
+    setFrontPictureFile(null); // Reset the front picture field
   };
 
   const clearBookingForm = () => {
@@ -232,18 +251,18 @@ function AdminDashboard() {
               <ListItemText primary="Accommodations" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button component={Link} to="/rates">
+            <ListItem button component={Link} to="/bookings">
               <ListItemIcon sx={{ color: '#fff' }}>
                 <MonetizationOnIcon />
               </ListItemIcon>
-              <ListItemText primary="Rates" sx={{ color: '#fff' }} />
+              <ListItemText primary="Bookings" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button component={Link} to="/specials">
+            <ListItem button component={Link} to="/discounts">
               <ListItemIcon sx={{ color: '#fff' }}>
                 <LocalOfferIcon />
               </ListItemIcon>
-              <ListItemText primary="Specials" sx={{ color: '#fff' }} />
+              <ListItemText primary="Discounts" sx={{ color: '#fff' }} />
             </ListItem>
 
             <ListItem button>
@@ -253,7 +272,16 @@ function AdminDashboard() {
               <ListItemText primary="Notifications" sx={{ color: '#fff' }} />
             </ListItem>
 
-            <ListItem button component={Link} to="/logout">
+            <ListItem button onClick={handleProfileClick}>
+              <ListItemIcon sx={{ color: '#fff' }}>
+                <Avatar sx={{ width: 24, height: 24 }}>
+                  {auth.currentUser?.displayName?.charAt(0).toUpperCase() || 'A'}
+                </Avatar>
+              </ListItemIcon>
+              <ListItemText primary={auth.currentUser?.displayName || 'Admin'} sx={{ color: '#fff' }} />
+            </ListItem>
+
+            <ListItem button>
               <ListItemIcon sx={{ color: '#fff' }}>
                 <LogoutIcon />
               </ListItemIcon>
@@ -263,23 +291,28 @@ function AdminDashboard() {
         </Drawer>
 
         <div className="content">
-          
-
-          {/* Accommodation and Booking Buttons */}
           <div className="button-container">
             <Button variant="contained" color="primary" onClick={handleClickOpenAccommodationDialog}>
               Add Accommodation
             </Button>
-            <Button variant="contained" color="secondary" onClick={handleClickOpenBookingDialog}>
+            <Button variant="contained" color="primary" onClick={handleClickOpenBookingDialog}>
               Add Booking
             </Button>
           </div>
 
           <header className="header">
             <div className="search-container">
-              <IconButton sx={{ color: '#fff' }} onClick={handleSearchClick}>
-                <SearchIcon />
-              </IconButton>
+              <div className="search-bar">
+                <SearchIcon sx={{ marginRight: 1 }} />
+                <InputBase
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onClick={handleSearchClick}
+                />
+              </div>
+
+              {/* Popover for search results */}
               <Popover
                 open={Boolean(anchorEl)}
                 anchorEl={anchorEl}
@@ -289,32 +322,21 @@ function AdminDashboard() {
                   horizontal: 'left',
                 }}
               >
-                <div style={{ padding: '10px' }}>
-                  <InputBase
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    sx={{ width: '300px' }}
-                  />
-                  {searchResults.length > 0 && (
-                    <List>
-                      {searchResults.map((result, index) => (
-                        <ListItem key={index}>{result}</ListItem>
-                      ))}
-                    </List>
-                  )}
-                </div>
+                <List>
+                  {searchResults.map((result, index) => (
+                    <ListItem button key={index}>
+                      <ListItemText primary={result} />
+                    </ListItem>
+                  ))}
+                </List>
               </Popover>
-            </div>
 
-            <div className="avatar-container">
-              <IconButton onClick={handleProfileClick}>
-                <Avatar src={auth.currentUser?.photoURL} alt="Admin" />
+              <IconButton>
+                <NotificationsIcon />
               </IconButton>
             </div>
           </header>
 
-          {/* Loader */}
           {loading && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
 
           {/* Accommodation Dialog */}
@@ -369,7 +391,12 @@ function AdminDashboard() {
                   ))}
                 </Select>
               </FormControl>
-              <input type="file" multiple onChange={handleFileChange} />
+
+              {/* Front picture upload field */}
+              <input type="file" accept="image/*" onChange={handleFrontPictureChange} />
+              
+              {/* Additional images upload field */}
+              <input type="file" multiple accept="image/*" onChange={handleFileChange} />
             </DialogContent>
             <DialogActions>
               <Button onClick={handleCloseAccommodationDialog}>Cancel</Button>
@@ -392,25 +419,25 @@ function AdminDashboard() {
                 margin="normal"
               />
               <DatePicker
-                label="Check-In Date"
+                label="Check-in Date"
                 value={bookingData.checkInDate}
                 onChange={(date) => setBookingData({ ...bookingData, checkInDate: date })}
                 renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
               />
               <TimePicker
-                label="Check-In Time"
+                label="Check-in Time"
                 value={bookingData.checkInTime}
                 onChange={(time) => setBookingData({ ...bookingData, checkInTime: time })}
                 renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
               />
               <DatePicker
-                label="Check-Out Date"
+                label="Check-out Date"
                 value={bookingData.checkOutDate}
                 onChange={(date) => setBookingData({ ...bookingData, checkOutDate: date })}
                 renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
               />
               <TimePicker
-                label="Check-Out Time"
+                label="Check-out Time"
                 value={bookingData.checkOutTime}
                 onChange={(time) => setBookingData({ ...bookingData, checkOutTime: time })}
                 renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
@@ -440,12 +467,13 @@ function AdminDashboard() {
             </DialogActions>
           </Dialog>
 
-          {/* Profile Update Dialog */}
+          {/* Profile Dialog */}
           <Dialog open={openProfileDialog} onClose={() => setOpenProfileDialog(false)}>
             <DialogTitle>Update Profile</DialogTitle>
             <DialogContent>
               <TextField
                 label="Display Name"
+                name="displayName"
                 value={profileData.displayName}
                 onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
                 fullWidth
@@ -453,6 +481,7 @@ function AdminDashboard() {
               />
               <TextField
                 label="Email"
+                name="email"
                 value={profileData.email}
                 onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                 fullWidth
@@ -461,8 +490,8 @@ function AdminDashboard() {
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setOpenProfileDialog(false)}>Cancel</Button>
-              <Button onClick={handleProfileUpdate} color="primary">
-                Update
+              <Button onClick={handleProfileUpdate} color="primary" disabled={loading}>
+                Update Profile
               </Button>
             </DialogActions>
           </Dialog>
@@ -473,7 +502,7 @@ function AdminDashboard() {
             autoHideDuration={3000}
             onClose={() => setSuccessMessage(false)}
           >
-            <Alert severity="success">Operation completed successfully!</Alert>
+            <Alert severity="success">Operation successful!</Alert>
           </Snackbar>
         </div>
       </div>

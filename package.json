@@ -17,7 +17,7 @@
     "browser-image-compression": "^2.0.2",
     "chart.js": "^4.4.4",
     "dayjs": "^1.11.13",
-    "firebase": "^10.13.1",
+    "firebase": "^10.14.0",
     "firebase-admin": "^12.5.0",
     "hotel": "file:",
     "react": "^18.3.1",

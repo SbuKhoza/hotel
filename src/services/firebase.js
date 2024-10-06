@@ -14,7 +14,7 @@ const firebaseConfig = {
   measurementId: "G-WEXYLZWL4G"
 };
 
-// Initialize Firebase Client SDK
+
 const app = initializeApp(firebaseConfig);
 
 // Export instances for Firestore, Auth, and Storage
